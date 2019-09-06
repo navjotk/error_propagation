@@ -4,7 +4,7 @@ import numpy as np
 import os.path
 import csv
 import socket
-
+import skimage
 
 from devito import TimeFunction, Function
 
@@ -17,6 +17,26 @@ from simple import overthrust_setup
 
 from examples.seismic.acoustic.acoustic_example import acoustic_setup
 from util import to_hdf5
+
+
+def error_norm(original, decompressed, ord=2):
+    error_field = original - decompressed
+    return np.linalg.norm(np.ravel(error_field), ord)
+
+def error_L0(original, decompressed):
+    return error_norm(original, decompressed, 0)
+
+def error_L1(original, decompressed):
+    return error_norm(original, decompressed, 1)
+
+def error_L2(original, decompressed):
+    return error_norm(original, decompressed, 2)
+
+def error_Linf(original, decompressed):
+    return error_norm(original, decompressed, np.inf)
+
+error_metrics = {'L0': error_L0, 'L1': error_L1, 'L2': error_L2, 'Linf': error_Linf,}
+                 # 'psnr': skimage.measure.compare_psnr}
 
 class Timer(object):
     def __init__(self, tracker):
@@ -50,8 +70,8 @@ def verify(space_order=4, kernel='OT4', nbpml=40, filename='', compression_param
     dt = solver.dt
     v = TimeFunction(name='v', grid=solver.model.grid, time_order=2, space_order=solver.space_order)
     grad = Function(name='grad', grid=solver.model.grid)
-    wrap_fw = CheckpointOperator(solver.op_fwd(save=False), src=solver.geometry.src, u=u, m=m, rec=rec, dt=dt)
-    wrap_rev = CheckpointOperator(solver.op_grad(save=False), u=u, v=v, m=m, rec=rec, dt=dt, grad=grad)
+    wrap_fw = CheckpointOperator(solver.op_fwd(save=False), src=solver.geometry.src, u=u, rec=rec, dt=dt)
+    wrap_rev = CheckpointOperator(solver.op_grad(save=False), u=u, v=v, rec=rec, dt=dt, grad=grad)
     nt = rec.data.shape[0] - 2
     print("Verifying for %d timesteps" % nt)
     wrp = Revolver(cp, wrap_fw, wrap_rev, n_checkpoints, nt,
@@ -76,8 +96,7 @@ def verify(space_order=4, kernel='OT4', nbpml=40, filename='', compression_param
 
 
 def checkpointed_run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', compression_params={}, **kwargs):
-    solver = acoustic_setup(shape=(10, 10), spacing=(10, 10), nbpml=10, tn=50,
-                            space_order=space_order, kernel=kernel, **kwargs)
+    solver = acoustic_setup(shape=(10, 10), spacing=(10, 10), nbpml=10, tn=50, space_order=space_order, kernel=kernel, **kwargs)
     #solver = overthrust_setup(filename=filename, tn=1000, nbpml=nbpml, space_order=space_order, kernel=kernel, **kwargs)
     
     u = TimeFunction(name='u', grid=solver.model.grid, time_order=2, space_order=solver.space_order)
@@ -91,8 +110,8 @@ def checkpointed_run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='
     dt = solver.dt
     v = TimeFunction(name='v', grid=solver.model.grid, time_order=2, space_order=solver.space_order)
     grad = Function(name='grad', grid=solver.model.grid)
-    wrap_fw = CheckpointOperator(solver.op_fwd(save=False), src=solver.geometry.src, u=u, m=m, rec=rec, dt=dt)
-    wrap_rev = CheckpointOperator(solver.op_grad(save=False), u=u, v=v, m=m, rec=rec, dt=dt, grad=grad)
+    wrap_fw = CheckpointOperator(solver.op_fwd(save=False), src=solver.geometry.src, u=u, rec=rec, dt=dt)
+    wrap_rev = CheckpointOperator(solver.op_grad(save=False), u=u, v=v, rec=rec, dt=dt, grad=grad)
     
     fw_timings = []
     rev_timings = []
@@ -120,13 +139,17 @@ def compare_error(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', 
     
     grad2, wrp2, fw_timings2, rev_timings2 = checkpointed_run(space_order, ncp, kernel, nbpml, filename,
                                                           compression_params, **kwargs)
-
+    
     error_field = grad2.data - grad.data
 
     print("compression enabled norm", np.linalg.norm(grad.data))
     print("compression disabled norm", np.linalg.norm(grad2.data))
     to_hdf5(error_field, 'zfp_grad_errors_full.h5')
-    print("Error norm", np.linalg.norm(error_field))
+    computed_errors = {}
+    
+    for k, v in error_metrics.items():
+        computed_errors[k] = v(grad2.data, grad.data)
+    print(computed_errors)
 
 def run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', compression_params={}, **kwargs):
     #solver = acoustic_setup(shape=(10, 10), spacing=(10, 10), nbpml=10, tn=50,
@@ -177,7 +200,7 @@ if __name__ == "__main__":
                         choices=["noop", "advanced", "speculative"],
                         help="Devito loop engine (DLE) mode")
     args = parser.parse_args()
-    compression_params={'scheme': args.compression, 'tolerance': args.tolerance}
+    compression_params={'scheme': args.compression, 'tolerance': 10**(-args.tolerance)}
     verify(nbpml=args.nbpml, 
         space_order=args.space_order, kernel=args.kernel,
            dse=args.dse, dle=args.dle, compression_params=compression_params)
