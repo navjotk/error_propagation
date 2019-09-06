@@ -1,9 +1,6 @@
 from argparse import ArgumentParser
 
 import numpy as np
-import os.path
-import csv
-import socket
 import skimage
 
 from devito import TimeFunction, Function
@@ -16,10 +13,10 @@ from timeit import default_timer
 from simple import overthrust_setup
 
 from examples.seismic.acoustic.acoustic_example import acoustic_setup
-from util import to_hdf5, error_L0, error_L1, error_L2, error_Linf
+from util import to_hdf5, error_L0, error_L1, error_L2, error_Linf, error_angle
 
 
-error_metrics = {'L0': error_L0, 'L1': error_L1, 'L2': error_L2, 'Linf': error_Linf,}
+error_metrics = {'L0': error_L0, 'L1': error_L1, 'L2': error_L2, 'Linf': error_Linf, 'angle': error_angle}
                  # 'psnr': skimage.measure.compare_psnr}
 
 class Timer(object):
@@ -139,21 +136,6 @@ def compare_error(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', 
 
     write_results(data, 'gradient_error_results.csv', ncp)
 
-
-def write_results(data, results_file, n_checkpoints):
-    hostname = socket.gethostname()
-    if not os.path.isfile(results_file):
-        write_header = True
-    else:
-        write_header = False
-    fieldnames = ['ncp', 'hostname'] + list(data.keys())
-    data['ncp'] = n_checkpoints
-    data['hostname'] = hostname
-    with open(results_file,'a') as fd:
-        writer = csv.DictWriter(fd, fieldnames=fieldnames)
-        if write_header:
-            writer.writeheader()
-        writer.writerow(data)
 
 def run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', compression_params={}, **kwargs):
     grad, wrp, fw_timings, rev_timings = checkpointed_run(space_order, ncp, kernel, nbpml, filename,
