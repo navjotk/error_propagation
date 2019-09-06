@@ -96,8 +96,8 @@ def verify(space_order=4, kernel='OT4', nbpml=40, filename='', compression_param
 
 
 def checkpointed_run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', compression_params={}, **kwargs):
-    solver = acoustic_setup(shape=(10, 10), spacing=(10, 10), nbpml=10, tn=50, space_order=space_order, kernel=kernel, **kwargs)
-    #solver = overthrust_setup(filename=filename, tn=1000, nbpml=nbpml, space_order=space_order, kernel=kernel, **kwargs)
+    #solver = acoustic_setup(shape=(10, 10), spacing=(10, 10), nbpml=10, tn=50, space_order=space_order, kernel=kernel, **kwargs)
+    solver = overthrust_setup(filename=filename, tn=1000, nbpml=nbpml, space_order=space_order, kernel=kernel, **kwargs)
     
     u = TimeFunction(name='u', grid=solver.model.grid, time_order=2, space_order=solver.space_order)
     rec = Receiver(name='rec', grid=solver.model.grid,
@@ -203,9 +203,9 @@ if __name__ == "__main__":
                         help="Devito loop engine (DLE) mode")
     args = parser.parse_args()
     compression_params={'scheme': args.compression, 'tolerance': 10**(-args.tolerance)}
-    verify(nbpml=args.nbpml, 
-        space_order=args.space_order, kernel=args.kernel,
-           dse=args.dse, dle=args.dle, compression_params=compression_params)
+    #verify(nbpml=args.nbpml, 
+    #    space_order=args.space_order, kernel=args.kernel,
+    #       dse=args.dse, dle=args.dle, compression_params=compression_params)
     path_prefix = os.path.dirname(os.path.realpath(__file__))
     compare_error(nbpml=args.nbpml, ncp=args.ncp,
         space_order=args.space_order, kernel=args.kernel,
