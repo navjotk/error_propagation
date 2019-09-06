@@ -16,24 +16,8 @@ from timeit import default_timer
 from simple import overthrust_setup
 
 from examples.seismic.acoustic.acoustic_example import acoustic_setup
-from util import to_hdf5
+from util import to_hdf5, error_L0, error_L1, error_L2, error_Linf
 
-
-def error_norm(original, decompressed, ord=2):
-    error_field = original - decompressed
-    return np.linalg.norm(np.ravel(error_field), ord)
-
-def error_L0(original, decompressed):
-    return error_norm(original, decompressed, 0)
-
-def error_L1(original, decompressed):
-    return error_norm(original, decompressed, 1)
-
-def error_L2(original, decompressed):
-    return error_norm(original, decompressed, 2)
-
-def error_Linf(original, decompressed):
-    return error_norm(original, decompressed, np.inf)
 
 error_metrics = {'L0': error_L0, 'L1': error_L1, 'L2': error_L2, 'Linf': error_Linf,}
                  # 'psnr': skimage.measure.compare_psnr}

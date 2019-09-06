@@ -3,7 +3,19 @@ from math import floor
 from pyzfp import compress, decompress
 import numpy as np
 from devito import TimeFunction, Function
+from util import to_hdf5, error_L0, error_L1, error_L2, error_Linf
 
+
+error_metrics = {'L0': error_L0, 'L1': error_L1, 'L2': error_L2, 'Linf': error_Linf,}
+
+def get_all_errors(original, lossy):
+    computed_errors = {}
+    for k, v in error_metrics.items():
+        computed_errors[k] = v(original, lossy)
+    return computed_errors
+
+def get_data(field):
+    return field._data
 
 def run_forward_error(space_order=4, kernel='OT4', **kwargs):
     # Setup solver
@@ -22,21 +34,27 @@ def run_forward_error(space_order=4, kernel='OT4', **kwargs):
     # Store last timestep
 
     u_comp = TimeFunction(name='u', grid=solver.model.grid, time_order=2, space_order=solver.space_order)
-
+    u_comp.data
     # Compress-decompress with given tolerance
 
-    print(u.data.flags)
+    atol = 0.001
 
-    compressed_u = compress(u.data, tolerance=0.1, parallel=True)
+    compressed_u = compress(get_data(u), tolerance=atol, parallel=True)
 
-    u_comp.data[:] = decompress(compressed_u, u_comp.shape, u_comp.dtype, tolerance=0.1)
+    mem = get_data(u_comp)
+    mem[:] = decompress(compressed_u, mem.shape, mem.dtype, tolerance=atol)
 
-    print(np.linalg.norm(u_comp.data - u.data))
 
+    for i in range(nt_2):
+            # Run for i steps (original last time step and compressed version)
+        _, u_original, _ = solver.forward(time_m=nt_2, time_M=nt_2+i, u=u)
+        _, u_lossy, _ = solver.forward(time_m=nt_2, time_M=nt_2+i, u=u_comp)
 
-    # for i in range(nt/2)
-    # Run for i steps (original last time step and compressed version)
-    # Compare and report error metrics
+        # Compare and report error metrics
+
+        data = get_all_errors(get_data(u_original), get_data(u_lossy))
+        data['ntimesteps'] = i
+        print(data)
 
 if __name__ == "__main__":
     run_forward_error()

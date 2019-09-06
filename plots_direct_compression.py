@@ -3,27 +3,13 @@ import pyzfp
 import numpy as np
 import skimage
 import matplotlib.pyplot as plt
+from util import to_hdf5, error_L0, error_L1, error_L2, error_Linf
+
 
 filename = "uncompressed.h5"
 
 plot = "L0"
 
-
-def error_norm(original, decompressed, ord=2):
-    error_field = original - decompressed
-    return np.linalg.norm(np.ravel(error_field), ord)
-
-def error_L0(original, decompressed):
-    return error_norm(original, decompressed, 0)
-
-def error_L1(original, decompressed):
-    return error_norm(original, decompressed, 1)
-
-def error_L2(original, decompressed):
-    return error_norm(original, decompressed, 2)
-
-def error_Linf(original, decompressed):
-    return error_norm(original, decompressed, np.inf)
 
 f = h5py.File(filename, 'r')
 
