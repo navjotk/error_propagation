@@ -149,34 +149,36 @@ def compare_error(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', 
     
     for k, v in error_metrics.items():
         computed_errors[k] = v(grad2.data, grad.data)
-    print(computed_errors)
 
-def run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', compression_params={}, **kwargs):
-    #solver = acoustic_setup(shape=(10, 10), spacing=(10, 10), nbpml=10, tn=50,
-    #                        space_order=space_order, kernel=kernel, **kwargs)
-    grad, wrp, fw_timings, rev_timings = checkpointed_run(space_order, ncp, kernel, nbpml, filename,
-                                                          compression_params, **kwargs)
-    print(wrp.profiler.summary())
+    data = computed_errors
+    data['tolerance'] = compression_params['tolerance']
 
+    write_results(data, 'gradient_error_results.csv', ncp)
+
+
+def write_results(data, results_file, n_checkpoints):
     hostname = socket.gethostname()
-    results_file = 'timing_results_1.csv'
     if not os.path.isfile(results_file):
         write_header = True
     else:
         write_header = False
-        
-    csv_row = wrp.profiler.get_dict()
-    
-    fieldnames = ['ncp', 'hostname'] + list(csv_row.keys())
-    csv_row['ncp'] = n_checkpoints
-    csv_row['hostname'] = hostname
+    fieldnames = ['ncp', 'hostname'] + list(data.keys())
+    data['ncp'] = n_checkpoints
+    data['hostname'] = hostname
     with open(results_file,'a') as fd:
         writer = csv.DictWriter(fd, fieldnames=fieldnames)
         if write_header:
             writer.writeheader()
-        writer.writerow(csv_row)
+        writer.writerow(data)
 
+def run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', compression_params={}, **kwargs):
+    grad, wrp, fw_timings, rev_timings = checkpointed_run(space_order, ncp, kernel, nbpml, filename,
+                                                          compression_params, **kwargs)
+    print(wrp.profiler.summary())
 
+    results_file = 'timing_results_1.csv'
+    csv_row = wrp.profiler.get_dict()
+    write_results(csv_row, results_file, n_checkpoints)
 
 if __name__ == "__main__":
     description = ("Example script for a set of acoustic operators.")
