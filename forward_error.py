@@ -21,10 +21,10 @@ def get_data(field):
 def run_forward_error(space_order=4, kernel='OT4', tolerance=0.001, nbpml=10, **kwargs):
     # Setup solver
 
-    solver = acoustic_setup(shape=(10, 10), spacing=(10, 10), nbpml=10, tn=50,
+    #solver = acoustic_setup(shape=(10, 10), spacing=(10, 10), nbpml=10, tn=50,
                             space_order=space_order, kernel=kernel, **kwargs)
     
-    #solver = overthrust_setup(filename=filename, tn=1000, nbpml=nbpml, space_order=space_order, kernel=kernel, **kwargs)
+    solver = overthrust_setup(filename=filename, tn=1000, nbpml=nbpml, space_order=space_order, kernel=kernel, **kwargs)
 
     # Run for nt/2 timesteps as a warm up
     nt = solver.geometry.time_axis.num
@@ -76,4 +76,7 @@ if __name__ == "__main__":
                         choices=["noop", "advanced", "speculative"],
                         help="Devito loop engine (DLE) mode")
     args = vars(parser.parse_args())
+    path_prefix = os.path.dirname(os.path.realpath(__file__))
+    args['tolerance'] = 10**(-args['tolerance'])
+    args['filename'] = '%s/overthrust_3D_initial_model.h5' % path_prefix
     run_forward_error(**args)
