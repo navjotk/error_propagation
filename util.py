@@ -60,3 +60,19 @@ def angle_between(v1, v2):
 
 def error_angle(original, decompressed):
     return angle_between(np.ravel(original), np.ravel(decompressed))
+
+
+def read_csv(filename):
+    results = {}
+    with open(filename) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            for k, v in row.items():
+                results_list = results.get(k, [])
+                try:
+                    v = float(v)
+                except ValueError:
+                    pass
+                results_list.append(v)
+                results[k] = results_list
+    return results
