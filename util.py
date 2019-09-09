@@ -25,15 +25,15 @@ def error_L2(original, decompressed):
 def error_Linf(original, decompressed):
     return error_norm(original, decompressed, np.inf)
 
-def write_results(data, results_file, n_checkpoints):
+def write_results(data, results_file):
     hostname = socket.gethostname()
     if not os.path.isfile(results_file):
         write_header = True
     else:
         write_header = False
-    fieldnames = ['ncp', 'hostname'] + list(data.keys())
-    data['ncp'] = n_checkpoints
+    
     data['hostname'] = hostname
+    fieldnames = list(data.keys())
     with open(results_file,'a') as fd:
         writer = csv.DictWriter(fd, fieldnames=fieldnames)
         if write_header:

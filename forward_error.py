@@ -54,7 +54,7 @@ def run_forward_error(space_order=4, kernel='OT4', tolerance=0.001, nbpml=10, **
         data = get_all_errors(get_data(u_original), get_data(u_lossy))
         data['ntimesteps'] = i
         data['atol'] = tolerance
-        write_results(data, "forward_prop_results.csv", None)
+        write_results(data, "forward_prop_results.csv")
 
 if __name__ == "__main__":
     description = ("Example script for a set of acoustic operators.")

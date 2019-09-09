@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-
+import os
 import numpy as np
 import skimage
 
@@ -133,8 +133,9 @@ def compare_error(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', 
 
     data = computed_errors
     data['tolerance'] = compression_params['tolerance']
+    data['ncp'] = ncp
 
-    write_results(data, 'gradient_error_results.csv', ncp)
+    write_results(data, 'gradient_error_results.csv')
 
 
 def run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', compression_params={}, **kwargs):
@@ -144,7 +145,8 @@ def run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', compressio
 
     results_file = 'timing_results_1.csv'
     csv_row = wrp.profiler.get_dict()
-    write_results(csv_row, results_file, n_checkpoints)
+    csv_row['ncp'] = n_checkpoints
+    write_results(csv_row, results_file)
 
 if __name__ == "__main__":
     description = ("Example script for a set of acoustic operators.")
