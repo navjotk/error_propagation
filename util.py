@@ -3,7 +3,34 @@ import numpy as np
 import socket
 import os.path
 import csv
+from examples.seismic.model import Model
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
+def from_hdf5(filename, **kwargs):
+    f = h5py.File(filename, 'r')
+    origin = kwargs.pop('origin', None)
+    if origin is None:
+        origin_key = kwargs.pop('origin_key', 'o')
+        origin = f[origin_key]
+
+    spacing = kwargs.pop('spacing', None)
+    if spacing is None:
+        spacing_key = kwargs.pop('spacing_key', 'd')
+        spacing = f[spacing_key]
+    nbpml = kwargs.pop('nbpml', 20)
+    datakey = kwargs.pop('datakey', None)
+    if datakey is None:
+        raise ValueError("datakey must be known - what is the name of the data in the file?")
+    space_order=kwargs.pop('space_order', None)
+    dtype = kwargs.pop('dtype', None)
+    data_m = f[datakey][()]
+    data_vp = np.sqrt(1/data_m).astype(dtype)
+    data_vp = np.transpose(data_vp, (1, 2, 0))
+    shape = data_vp.shape
+    return Model(space_order=space_order, vp=data_vp, origin=origin, shape=shape,
+                     dtype=dtype, spacing=spacing, nbpml=nbpml)
 
 def to_hdf5(data, filename):
     with h5py.File(filename, 'w') as f:
@@ -25,15 +52,15 @@ def error_L2(original, decompressed):
 def error_Linf(original, decompressed):
     return error_norm(original, decompressed, np.inf)
 
-def write_results(data, results_file, n_checkpoints):
+def write_results(data, results_file):
     hostname = socket.gethostname()
     if not os.path.isfile(results_file):
         write_header = True
     else:
         write_header = False
-    fieldnames = ['ncp', 'hostname'] + list(data.keys())
-    data['ncp'] = n_checkpoints
+    
     data['hostname'] = hostname
+    fieldnames = list(data.keys())
     with open(results_file,'a') as fd:
         writer = csv.DictWriter(fd, fieldnames=fieldnames)
         if write_header:
@@ -60,3 +87,39 @@ def angle_between(v1, v2):
 
 def error_angle(original, decompressed):
     return angle_between(np.ravel(original), np.ravel(decompressed))
+
+
+def read_csv(filename):
+    results = {}
+    with open(filename) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            for k, v in row.items():
+                results_list = results.get(k, [])
+                try:
+                    v = float(v)
+                except ValueError:
+                    pass
+                results_list.append(v)
+                results[k] = results_list
+    return results
+
+def plot_field(data, output_file, velocity_model='overthrust_3D_initial_model.h5', basepath='figs/'):
+    model = from_hdf5(velocity_model, space_order=2, nbpml=20, datakey='m0', dtype=np.float32)
+    shape = model.vp.shape
+    vmax = np.max(data)
+
+    slice_loc = 440
+    im = plt.imshow(np.transpose(data[slice_loc]), vmax=vmax, vmin=-vmax, cmap="seismic",
+           extent = [0, 20, 0.001*(shape[-1]-1)*25, 0])
+
+    plt.xlabel("X (km)")
+    plt.ylabel("Depth (km)")
+    cb = plt.colorbar(shrink=.3, pad=.01, aspect=10)
+    for l in cb.ax.yaxis.get_ticklabels():
+        l.set_fontsize(12)
+
+        cb.set_label('Pressure')
+
+    plt.savefig(basepath+output_file, bbox_inches='tight')
+    plt.clf()
