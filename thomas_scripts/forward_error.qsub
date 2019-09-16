@@ -10,7 +10,7 @@
 # 4. Request 15 gigabyte of TMPDIR space (default is 10 GB)
 #$ -l tmpfs=15G
 # 5. Set the name of the job.
-#$ -N error-prop-gradient
+#$ -N error-prop-forward
 # 6. Select 12 threads (the most possible on Legion).
 # 7. Set the working directory to somewhere in your scratch space.  This is
 # a necessary step with the upgraded software stack as compute nodes cannot
