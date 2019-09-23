@@ -27,14 +27,21 @@ def from_hdf5(filename, **kwargs):
     dtype = kwargs.pop('dtype', None)
     data_m = f[datakey][()]
     data_vp = np.sqrt(1/data_m).astype(dtype)
-    data_vp = np.transpose(data_vp, (1, 2, 0))
+
+    if len(data_vp.shape) > 2:
+        data_vp = np.transpose(data_vp, (1, 2, 0))
+    else:
+        data_vp = np.transpose(data_vp, (1, 0))
     shape = data_vp.shape
     return Model(space_order=space_order, vp=data_vp, origin=origin, shape=shape,
                      dtype=dtype, spacing=spacing, nbpml=nbpml)
 
-def to_hdf5(data, filename):
+def to_hdf5(data, filename, datakey='data', additional=None):
     with h5py.File(filename, 'w') as f:
-        f.create_dataset('data', data=data)
+        f.create_dataset(datakey, data=data, dtype=data.dtype)
+        if additional is not None:
+            for k, v in additional.items():
+                f.create_dataset(k, data=v, dtype=v.dtype)
 
 def error_norm(original, decompressed, ord=2):
     error_field = original - decompressed
@@ -104,13 +111,14 @@ def read_csv(filename):
                 results[k] = results_list
     return results
 
-def plot_field(data, output_file, velocity_model='overthrust_3D_initial_model.h5', basepath='figs/'):
-    model = from_hdf5(velocity_model, space_order=2, nbpml=20, datakey='m0', dtype=np.float32)
-    shape = model.vp.shape
+def plot_field(data, output_file, basepath='figs/'):
+    shape = data.shape
     vmax = np.max(data)
-
     slice_loc = 440
-    im = plt.imshow(np.transpose(data[slice_loc]), vmax=vmax, vmin=-vmax, cmap="seismic",
+    if len(shape) > 2:
+        data = data[slice_loc]
+
+    im = plt.imshow(np.transpose(data), vmax=vmax, vmin=-vmax, cmap="seismic",
            extent = [0, 20, 0.001*(shape[-1]-1)*25, 0])
 
     plt.xlabel("X (km)")

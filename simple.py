@@ -11,35 +11,11 @@ import numpy as np
 #from pyrevolve import Revolver
 import h5py
 from contexttimer import Timer
-from util import to_hdf5
+from util import to_hdf5, from_hdf5
 
 
-def from_hdf5(filename, **kwargs):
-    f = h5py.File(filename, 'r')
-    origin = kwargs.pop('origin', None)
-    if origin is None:
-        origin_key = kwargs.pop('origin_key', 'o')
-        origin = f[origin_key]
-
-    spacing = kwargs.pop('spacing', None)
-    if spacing is None:
-        spacing_key = kwargs.pop('spacing_key', 'd')
-        spacing = f[spacing_key]
-    nbpml = kwargs.pop('nbpml', 20)
-    datakey = kwargs.pop('datakey', None)
-    if datakey is None:
-        raise ValueError("datakey must be known - what is the name of the data in the file?")
-    space_order=kwargs.pop('space_order', None)
-    dtype = kwargs.pop('dtype', None)
-    data_m = f[datakey][()]
-    data_vp = np.sqrt(1/data_m).astype(dtype)
-    data_vp = np.transpose(data_vp, (1, 2, 0))
-    shape = data_vp.shape
-    return Model(space_order=space_order, vp=data_vp, origin=origin, shape=shape,
-                     dtype=dtype, spacing=spacing, nbpml=nbpml)
-
-def overthrust_setup(filename, kernel='OT2', tn = 4000, space_order=2, nbpml=40, dtype=np.float32, **kwargs):
-    model = from_hdf5(filename, space_order=space_order, nbpml=nbpml, datakey='m0', dtype=dtype)
+def overthrust_setup(filename, kernel='OT2', tn = 4000, src_coordinates=None, space_order=2, datakey='m0', nbpml=40, dtype=np.float32, **kwargs):
+    model = from_hdf5(filename, space_order=space_order, nbpml=nbpml, datakey=datakey, dtype=dtype)
     shape = model.vp.shape
     spacing = model.spacing
     nrec = shape[0]
@@ -49,10 +25,11 @@ def overthrust_setup(filename, kernel='OT2', tn = 4000, space_order=2, nbpml=40,
     t0 = 0.0
     time_range = TimeAxis(start=t0, stop=tn, step=dt)
 
-    src_coordinates = np.empty((1, len(spacing)))
-    src_coordinates[0, :] = np.array(model.domain_size) * .5
-    if len(shape) > 1:
-        src_coordinates[0, -1] = model.origin[-1] + 2 * spacing[-1]
+    if src_coordinates is None:
+        src_coordinates = np.empty((1, len(spacing)))
+        src_coordinates[0, :] = np.array(model.domain_size) * .5
+        if len(shape) > 1:
+            src_coordinates[0, -1] = model.origin[-1] + 2 * spacing[-1]
 
     rec_coordinates = np.empty((nrec, len(spacing)))
     rec_coordinates[:, 0] = np.linspace(0., model.domain_size[0], num=nrec)
@@ -62,7 +39,7 @@ def overthrust_setup(filename, kernel='OT2', tn = 4000, space_order=2, nbpml=40,
 
     # Create solver object to provide relevant operator
     geometry = AcquisitionGeometry(model, rec_coordinates, src_coordinates,
-                                   t0=0.0, tn=tn, src_type='Ricker', f0=0.010)
+                                   t0=0.0, tn=tn, src_type='Ricker', f0=0.008)
     solver = AcousticWaveSolver(model, geometry, kernel=kernel,
                                 space_order=space_order, **kwargs)
     return solver
