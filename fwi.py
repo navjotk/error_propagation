@@ -33,7 +33,7 @@ def fwi_gradient(vp_in, model, geometry):
     vp_in = vec2mat(vp_in)
     global iter
     iter += 1
-    plot_field(vp_in, output_file="model%d.png"%iter)
+    #plot_field(vp_in, output_file="model%d.png"%iter)
     
     assert(model.vp.shape == vp_in.shape)
     vp.data[:] = vp_in[:]
@@ -61,6 +61,8 @@ def fwi_gradient(vp_in, model, geometry):
         
         objective += .5*np.linalg.norm(residual.data.flatten())**2
         solver.gradient(rec=residual, u=u0, vp=vp, grad=grad)
+    grad.data[:] /= np.max(np.abs(grad.data[:]))
+    grad.data[:, :model.nbpml+20] = 0.
     print("Objective value: %f"%objective)
     return objective, np.ravel(grad.data).astype(np.float64)
 
