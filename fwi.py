@@ -33,11 +33,12 @@ def fwi_gradient(vp_in, model, geometry):
     vp_in = vec2mat(vp_in)
     global iter
     iter += 1
-    #plot_field(vp_in, output_file="model%d.png"%iter)
+    plot_field(vp_in, output_file="model%d.png"%iter)
     
     assert(model.vp.shape == vp_in.shape)
     vp.data[:] = vp_in[:]
     # Creat forward wavefield to reuse to avoid memory overload
+    solver = overthrust_setup(filename,datakey="m0")
     u0 = TimeFunction(name='u', grid=model.grid, time_order=2, space_order=4,
                       save=geometry.nt)
     for i in range(nshots):
@@ -48,11 +49,10 @@ def fwi_gradient(vp_in, model, geometry):
         true_d, source_location = load_shot(i)
 
         # Update source location
-        geometry.src_positions[0, :] = source_location[:]
+        solver.geometry.src_positions[0, :] = source_location[:]
         
         # Compute smooth data and full forward wavefield u0
         u0.data.fill(0.)
-        solver = overthrust_setup(filename, src_coordinates=source_location, datakey="m0")
         
         smooth_d, _, _ = solver.forward(vp=vp, save=True, u=u0)
         
@@ -62,9 +62,8 @@ def fwi_gradient(vp_in, model, geometry):
         objective += .5*np.linalg.norm(residual.data.flatten())**2
         solver.gradient(rec=residual, u=u0, vp=vp, grad=grad)
     grad.data[:] /= np.max(np.abs(grad.data[:]))
-    grad.data[:, :model.nbpml+20] = 0.
     print("Objective value: %f"%objective)
-    return objective, np.ravel(grad.data).astype(np.float64)
+    return objective, -np.ravel(grad.data).astype(np.float64)
 
 
 tn = 4000
@@ -123,8 +122,8 @@ def g_only(x, model, geometry):
 vmax = np.ones(model.vp.shape) * 6.5
 vmin = np.ones(model.vp.shape) * 1.3
 
-vmax[:, 0:20] = model.vp.data[:, 0:20]
-vmin[:, 0:20] = model.vp.data[:, 0:20]
+vmax[:, 0:20+model.nbpml] = model.vp.data[:, 0:20+model.nbpml]
+vmin[:, 0:20+model.nbpml] = model.vp.data[:, 0:20+model.nbpml]
 b = Bounds(mat2vec(vmin), mat2vec(vmax))
 
 minimize(fwi_gradient, mat2vec(model.vp.data), args=(model, geometry), jac=True, method='L-BFGS-B', bounds=b, options={'disp':True})
