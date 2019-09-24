@@ -126,7 +126,12 @@ vmax[:, 0:20+model.nbpml] = model.vp.data[:, 0:20+model.nbpml]
 vmin[:, 0:20+model.nbpml] = model.vp.data[:, 0:20+model.nbpml]
 b = Bounds(mat2vec(vmin), mat2vec(vmax))
 
-minimize(fwi_gradient, mat2vec(model.vp.data), args=(model, geometry), jac=True, method='L-BFGS-B', bounds=b, options={'disp':True})
+solution_object = minimize(fwi_gradient, mat2vec(model.vp.data), args=(model, geometry), jac=True, method='L-BFGS-B', bounds=b, options={'disp':True})
+
+from IPython import embed
+embed()
+
+
 #least_squares(f_only, mat2vec(model.vp.data), args=(model, geometry), jac=g_only, bounds=(1.4, 6.1))
 # Run FWI with gradient descent
 #history = np.zeros((fwi_iterations, 1))
