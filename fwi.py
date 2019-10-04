@@ -1,4 +1,4 @@
-from util import from_hdf5, plot_field
+from util import from_hdf5, plot_field, write_results
 import numpy as np
 import h5py
 
@@ -7,6 +7,9 @@ from examples.seismic import AcquisitionGeometry, Receiver
 from simple import overthrust_setup
 from skimage.restoration import denoise_tv_chambolle
 from scipy.optimize import minimize, Bounds, least_squares
+
+
+
 
 filename = "overthrust_3D_initial_model_2D.h5"
 
@@ -61,6 +64,56 @@ def fwi_gradient(vp_in, model, geometry):
         
         objective += .5*np.linalg.norm(residual.data.flatten())**2
         solver.gradient(rec=residual, u=u0, vp=vp, grad=grad)
+    grad.data[:] /= np.max(np.abs(grad.data[:]))
+    print("Objective value: %f"%objective)
+    return objective, -np.ravel(grad.data).astype(np.float64)
+
+
+
+def fwi_gradient_checkpointed(vp_in, model, geometry):
+    print("FWI/Gradient called")
+    # Create symbols to hold the gradient and residual
+    grad = Function(name="grad", grid=model.grid)
+    vp = Function(name="vp", grid=model.grid)
+    residual = Receiver(name='rec', grid=model.grid,
+                        time_range=geometry.time_axis, 
+                        coordinates=geometry.rec_positions)
+    objective = 0.
+    vp_in = vec2mat(vp_in)
+    global iter
+    iter += 1
+    plot_field(vp_in, output_file="model%d.png"%iter)
+    
+    assert(model.vp.shape == vp_in.shape)
+    vp.data[:] = vp_in[:]
+    # Creat forward wavefield to reuse to avoid memory overload
+    solver = overthrust_setup(filename,datakey="m0")
+    wrap_fw = CheckpointOperator(solver.op_fwd(save=False), src=solver.geometry.src, u=u, rec=rec, dt=dt)
+    wrap_rev = CheckpointOperator(solver.op_grad(save=False), u=u, v=v, rec=rec, dt=dt, grad=grad)
+    wrp = Revolver(cp, wrap_fw, wrap_rev, n_checkpoints, nt,
+                   compression_params=compression_params)
+    u0 = TimeFunction(name='u', grid=model.grid, time_order=2, space_order=4,
+                      save=geometry.nt)
+    for i in range(nshots):
+        # Important: We force previous wavefields to be destroyed,
+        # so that we may reuse the memory.
+        clear_cache()
+        
+        true_d, source_location = load_shot(i)
+
+        # Update source location
+        solver.geometry.src_positions[0, :] = source_location[:]
+        
+        # Compute smooth data and full forward wavefield u0
+        u0.data.fill(0.)
+        
+        wrp.apply_forward()
+        
+        # Compute gradient from data residual and update objective function 
+        residual.data[:] = smooth_d.data[:] - true_d[:]
+        
+        objective += .5*np.linalg.norm(residual.data.flatten())**2
+        wrp.apply_reverse()
     grad.data[:] /= np.max(np.abs(grad.data[:]))
     print("Objective value: %f"%objective)
     return objective, -np.ravel(grad.data).astype(np.float64)
@@ -126,32 +179,18 @@ vmax[:, 0:20+model.nbpml] = model.vp.data[:, 0:20+model.nbpml]
 vmin[:, 0:20+model.nbpml] = model.vp.data[:, 0:20+model.nbpml]
 b = Bounds(mat2vec(vmin), mat2vec(vmax))
 
+
+assert(fwi_gradient(mat2vec(model.vp.data), model, geometry) == fwi_gradient_checkpointed(mat2vec(model.vp.data), model, geometry))
+
+
 solution_object = minimize(fwi_gradient, mat2vec(model.vp.data), args=(model, geometry), jac=True, method='L-BFGS-B', bounds=b, options={'disp':True})
 
-from IPython import embed
-embed()
+
+true_model = from_hdf5("overthrust_3D_true_model_2D.h5", datakey="m", dtype=np.float32, space_order=2, nbpml=40)
 
 
-#least_squares(f_only, mat2vec(model.vp.data), args=(model, geometry), jac=g_only, bounds=(1.4, 6.1))
-# Run FWI with gradient descent
-#history = np.zeros((fwi_iterations, 1))
-#for i in range(0, fwi_iterations):
-#    # Compute the functional value and gradient for the current
-#    # model estimate
-#    phi, direction = fwi_gradient(model.vp, model, geometry)
-#    direction = -direction
-#    # Store the history of the functional values
-#    history[i] = phi
-#    
-#    # Artificial Step length for gradient descent
-#    # In practice this would be replaced by a Linesearch (Wolfe, ...)
-#    # that would guarantee functional decrease Phi(m-alpha g) <= epsilon Phi(m)
-#    # where epsilon is a minimum decrease constant
-#    alpha = .05 / np.abs(direction).max()
-#    
-#    # Update the model estimate and enforce minimum/maximum values
-#    model.vp = apply_box_constraint(model.vp.data - alpha * direction)
-#    
-#    # Log the progress made
-#    print('Objective value is %f at iteration %d' % (phi, i+1))
-#    plot_field(model.vp.data, output_file="model%d.pdf"%i)
+error_norm = np.linalg.norm(true_model.vp.data - vec2mat(solution_object.x))
+print(error_norm)
+
+data = {'error_norm': error_norm}
+write_results(data, "fwi_experiment.csv")
