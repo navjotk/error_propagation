@@ -19,7 +19,6 @@ field = f['data'][()]
 
 tolerances = [10**x for x in range(0, -17, -1)]
 
-print(tolerances)
 error_metrics = {'L0': error_L0, 'L1': error_L1, 'L2': error_L2, 'Linf': error_Linf,
                  'psnr': skimage.measure.compare_psnr}
 
