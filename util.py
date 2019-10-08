@@ -1,11 +1,11 @@
+import matplotlib
+matplotlib.use("Agg")
 import h5py
 import numpy as np
 import socket
 import os.path
 import csv
 from examples.seismic.model import Model
-import matplotlib
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 def from_hdf5(filename, **kwargs):
