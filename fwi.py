@@ -4,10 +4,11 @@ import h5py
 
 from devito import Function, TimeFunction, clear_cache
 from examples.seismic import AcquisitionGeometry, Receiver
+from examples.checkpointing.checkpoint import CheckpointOperator, DevitoCheckpoint
 from simple import overthrust_setup
 from skimage.restoration import denoise_tv_chambolle
 from scipy.optimize import minimize, Bounds, least_squares
-
+from pyrevolve import Revolver
 
 
 
@@ -70,15 +71,19 @@ def fwi_gradient(vp_in, model, geometry):
 
 
 
-def fwi_gradient_checkpointed(vp_in, model, geometry):
-    print("FWI/Gradient called")
+def fwi_gradient_checkpointed(vp_in, model, geometry, n_checkpoints=10):
+    print("Checkpointed FWI/Gradient called")
     # Create symbols to hold the gradient and residual
     grad = Function(name="grad", grid=model.grid)
     vp = Function(name="vp", grid=model.grid)
+    smooth_d = Receiver(name='rec', grid=model.grid,
+                        time_range=geometry.time_axis, 
+                        coordinates=geometry.rec_positions)
     residual = Receiver(name='rec', grid=model.grid,
                         time_range=geometry.time_axis, 
                         coordinates=geometry.rec_positions)
     objective = 0.
+    time_order = 2
     vp_in = vec2mat(vp_in)
     global iter
     iter += 1
@@ -88,12 +93,15 @@ def fwi_gradient_checkpointed(vp_in, model, geometry):
     vp.data[:] = vp_in[:]
     # Creat forward wavefield to reuse to avoid memory overload
     solver = overthrust_setup(filename,datakey="m0")
-    wrap_fw = CheckpointOperator(solver.op_fwd(save=False), src=solver.geometry.src, u=u, rec=rec, dt=dt)
-    wrap_rev = CheckpointOperator(solver.op_grad(save=False), u=u, v=v, rec=rec, dt=dt, grad=grad)
+    nt = smooth_d.data.shape[0] - 2
+    u = TimeFunction(name='u', grid=model.grid, time_order=time_order, space_order=4)
+    v = TimeFunction(name='v', grid=model.grid, time_order=time_order, space_order=4)
+    wrap_fw = CheckpointOperator(solver.op_fwd(save=False), src=solver.geometry.src, u=u, rec=smooth_d)
+    wrap_rev = CheckpointOperator(solver.op_grad(save=False), u=u, v=v, rec=residual, grad=grad)
+    cp = DevitoCheckpoint([u])
+    compression_params = None
     wrp = Revolver(cp, wrap_fw, wrap_rev, n_checkpoints, nt,
                    compression_params=compression_params)
-    u0 = TimeFunction(name='u', grid=model.grid, time_order=2, space_order=4,
-                      save=geometry.nt)
     for i in range(nshots):
         # Important: We force previous wavefields to be destroyed,
         # so that we may reuse the memory.
@@ -105,7 +113,7 @@ def fwi_gradient_checkpointed(vp_in, model, geometry):
         solver.geometry.src_positions[0, :] = source_location[:]
         
         # Compute smooth data and full forward wavefield u0
-        u0.data.fill(0.)
+        u.data.fill(0.)
         
         wrp.apply_forward()
         
@@ -180,7 +188,7 @@ vmin[:, 0:20+model.nbpml] = model.vp.data[:, 0:20+model.nbpml]
 b = Bounds(mat2vec(vmin), mat2vec(vmax))
 
 
-assert(fwi_gradient(mat2vec(model.vp.data), model, geometry) == fwi_gradient_checkpointed(mat2vec(model.vp.data), model, geometry))
+assert(fwi_gradient_checkpointed(mat2vec(model.vp.data), model, geometry) == fwi_gradient(mat2vec(model.vp.data), model, geometry))
 
 
 solution_object = minimize(fwi_gradient, mat2vec(model.vp.data), args=(model, geometry), jac=True, method='L-BFGS-B', bounds=b, options={'disp':True})
