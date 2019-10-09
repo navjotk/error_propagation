@@ -113,6 +113,7 @@ def read_csv(filename):
 
 def plot_field(data, output_file, basepath='figs/'):
     shape = data.shape
+    print(shape)
     vmax = np.max(data)
     slice_loc = 440
     if len(shape) > 2:
