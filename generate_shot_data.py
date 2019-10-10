@@ -5,7 +5,7 @@ from util import from_hdf5, to_hdf5
 
 
 filename = "overthrust_3D_true_model_2D.h5"
-nsrc = 20
+nsrc = 40
 model = from_hdf5(filename, datakey="m", dtype=np.float32, space_order=2, nbpml=40)
 spacing = model.spacing
 

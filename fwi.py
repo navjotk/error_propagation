@@ -14,7 +14,7 @@ from pyrevolve import Revolver
 
 filename = "overthrust_3D_initial_model_2D.h5"
 tn = 4000
-nshots = 20
+nshots = 40
 
 
 def load_shot(num):
