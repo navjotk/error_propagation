@@ -22,7 +22,7 @@ def load_shot(num):
 
     filename = "%s/shot_%d.h5" % (basepath, num)
 
-    with h5py.File(filename) as f:
+    with h5py.File(filename, 'r') as f:
         data = f['data'][()]
         src_coords = f['src_coords'][()]
     return data, src_coords
