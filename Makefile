@@ -1,5 +1,8 @@
 all: stream.txt
 
+paper.pdf: paper/bookchapter.tex
+	cd paper && pdflatex bookchapter.tex 
+
 stream.txt: stream.o
 	./stream.o > stream.txt
 
@@ -20,7 +23,7 @@ overthrust_3D_true_model_2D.h5: slicer.py overthrust_3D_true_model.h5
 	python slicer.py --filename overthrust_3D_true_model.h5 --datakey m
 
 overthrust_3D_true_model.h5:
-	wget ftp://slim.gatech.edu/data/SoftwareRelease/WaveformInversion.jl/3DFWI/overthrust_3D_true_model.h5
+	wget ftp://slim.gatech.edu/data/SoftwareRelease/WaveformInversion.jl/3DFWI/overthrust_3D_true_model.h5\
 
 overthrust_3D_initial_model_2D.h5: slicer.py overthrust_3D_initial_model.h5
 	python slicer.py --filename overthrust_3D_initial_model.h5 --datakey m0
