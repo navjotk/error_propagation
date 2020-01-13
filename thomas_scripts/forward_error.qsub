@@ -29,4 +29,4 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/pyzfp/zfp-0.5.3/lib:/$HOME/pysz/sz
 export DEVITO_OPENMP=1
 export DEVITO_ARCH=intel
 export DEVITO_LOGGING=DEBUG
-python -u /home/mmm0334/error_propagation/forward_error.py --ncp 15 --compression zfp --tolerance $SGE_TASK_ID
+python -u /home/mmm0334/error_propagation/forward_error.py --compression zfp --tolerance $SGE_TASK_ID

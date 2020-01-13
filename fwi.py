@@ -20,9 +20,9 @@ nshots = 40
 def load_shot(num):
     basepath = "shots"
 
-    filename = "%s/shot_%d.h5" % (basepath, num)
+    filename = "%s/%s/shot_%d.h5" % (path_prefix, basepath, num)
 
-    with h5py.File(filename) as f:
+    with h5py.File(filename, 'r') as f:
         data = f['data'][()]
         src_coords = f['src_coords'][()]
     return data, src_coords
@@ -39,12 +39,12 @@ def fwi_gradient(vp_in, model, geometry, *args):
     vp_in = vec2mat(vp_in)
     global iter
     iter += 1
-    plot_field(vp_in, output_file="model%d.png"%iter)
+    #plot_field(vp_in, output_file="model%d.png"%iter)
     
     assert(model.vp.shape == vp_in.shape)
     vp.data[:] = vp_in[:]
     # Creat forward wavefield to reuse to avoid memory overload
-    solver = overthrust_setup(filename,datakey="m0")
+    solver = overthrust_setup(path_prefix+"/"+filename,datakey="m0")
     u0 = TimeFunction(name='u', grid=model.grid, time_order=2, space_order=4,
                       save=geometry.nt)
     for i in range(nshots):
@@ -89,12 +89,12 @@ def fwi_gradient_checkpointed(vp_in, model, geometry, n_checkpoints=1000, compre
     vp_in = vec2mat(vp_in)
     global iter
     iter += 1
-    plot_field(vp_in, output_file="model%d.png"%iter)
+    #plot_field(vp_in, output_file="model%d.png"%iter)
     
     assert(model.vp.shape == vp_in.shape)
     vp.data[:] = vp_in[:]
     # Creat forward wavefield to reuse to avoid memory overload
-    solver = overthrust_setup(filename,datakey="m0")
+    solver = overthrust_setup(path_prefix+"/"+filename,datakey="m0")
     dt = solver.dt
     nt = smooth_d.data.shape[0] - 2
     u = TimeFunction(name='u', grid=model.grid, time_order=time_order, space_order=4)
@@ -167,8 +167,8 @@ def verify_equivalence():
         np.testing.assert_allclose(r2, r1, rtol=0.01, atol=1e-8)
 
 
-
-model = from_hdf5(filename, datakey="m0", dtype=np.float32, space_order=2, nbpml=40)
+path_prefix = os.path.dirname(os.path.realpath(__file__))
+model = from_hdf5(path_prefix+"/"+filename, datakey="m0", dtype=np.float32, space_order=2, nbpml=40)
 spacing = model.spacing
 shape = model.vp.shape
 nrec = shape[0]
@@ -217,9 +217,6 @@ parser.add_argument("-dle", default="advanced",
 args = parser.parse_args()
 compression_params={'scheme': args.compression, 'tolerance': 10**(-args.tolerance)}
 
-path_prefix = os.path.dirname(os.path.realpath(__file__))
-
-
 if args.checkpointing:
     f_g = fwi_gradient_checkpointed
 else:
@@ -229,7 +226,7 @@ else:
 solution_object = minimize(f_g, mat2vec(model.vp.data), args=(model, geometry, args.ncp, compression_params), jac=True, method='L-BFGS-B', bounds=b, options={'disp':True})
 
 
-true_model = from_hdf5("overthrust_3D_true_model_2D.h5", datakey="m",
+true_model = from_hdf5(path_prefix+"/"+"overthrust_3D_true_model_2D.h5", datakey="m",
                         dtype=np.float32, space_order=2, nbpml=40)
 
 
