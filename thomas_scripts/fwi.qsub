@@ -4,7 +4,7 @@
 # 1. Force bash as the executing shell.
 #$ -S /bin/bash
 # 2. Request ten minutes of wallclock time (format hours:minutes:seconds).
-#$ -l h_rt=3:0:0
+#$ -l h_rt=48:0:0
 # 3. Request 1 gigabyte of RAM for each core/thread (must be an integer)
 #$ -l mem=128G
 # 4. Request 15 gigabyte of TMPDIR space (default is 10 GB)
@@ -27,6 +27,6 @@ module load python/miniconda3/4.5.11
 conda activate devito
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/pyzfp/zfp-0.5.3/lib:/$HOME/pysz/sz-2.0.2.0/lib
 export DEVITO_OPENMP=1
-export DEVITO_ARCH=intel
+export DEVITO_ARCH=gcc
 export DEVITO_LOGGING=DEBUG
 python -u /home/mmm0334/error_propagation/fwi.py --ncp 500 --compression zfp --tolerance $SGE_TASK_ID
