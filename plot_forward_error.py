@@ -15,7 +15,7 @@ filename = args.filename
 
 results = read_csv(filename)
 
-basename = filename.split(".")[0]
+basename = "forward"
 
 xvar = 'ntimesteps'
 

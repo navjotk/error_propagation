@@ -15,6 +15,7 @@ from pyrevolve import Revolver
 filename = "overthrust_3D_initial_model_2D.h5"
 tn = 4000
 nshots = 40
+nbpml = 40
 
 
 def load_shot(num):
@@ -168,7 +169,7 @@ def verify_equivalence():
 
 
 path_prefix = os.path.dirname(os.path.realpath(__file__))
-model = from_hdf5(path_prefix+"/"+filename, datakey="m0", dtype=np.float32, space_order=2, nbpml=40)
+model = from_hdf5(path_prefix+"/"+filename, datakey="m0", dtype=np.float32, space_order=2, nbpml=nbpml)
 spacing = model.spacing
 shape = model.vp.shape
 nrec = shape[0]
@@ -190,8 +191,8 @@ geometry = AcquisitionGeometry(model, rec_coordinates, src_coordinates,
 vmax = np.ones(model.vp.shape) * 6.5
 vmin = np.ones(model.vp.shape) * 1.3
 
-vmax[:, 0:20+model.nbpml] = model.vp.data[:, 0:20+model.nbpml]
-vmin[:, 0:20+model.nbpml] = model.vp.data[:, 0:20+model.nbpml]
+vmax[:, 0:20+nbpml] = model.vp.data[:, 0:20+nbpml]
+vmin[:, 0:20+nbpml] = model.vp.data[:, 0:20+nbpml]
 b = Bounds(mat2vec(vmin), mat2vec(vmax))
 
 
@@ -227,7 +228,7 @@ solution_object = minimize(f_g, mat2vec(model.vp.data), args=(model, geometry, a
 
 
 true_model = from_hdf5(path_prefix+"/"+"overthrust_3D_true_model_2D.h5", datakey="m",
-                        dtype=np.float32, space_order=2, nbpml=40)
+                        dtype=np.float32, space_order=2, nbpml=nbpml)
 
 
 error_norm = np.linalg.norm(true_model.vp.data - vec2mat(solution_object.x))
