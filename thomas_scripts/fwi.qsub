@@ -17,6 +17,7 @@
 # write to $HOME.
 # Replace "<your_UCL_id>" with your UCL user ID :)
 #$ -wd /home/mmm0334/Scratch/output
+#$ -P Gold
 #$ -A Imperial_ESE
 # 5. Set up the job array.  In this instance we have requested 10000 tasks
 # numbered 1 to 10000.
