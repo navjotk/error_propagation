@@ -29,7 +29,6 @@ def load_shot(num):
     return data, src_coords
 
 def fwi_gradient(vp_in, model, geometry, *args):
-    print("FWI/Gradient called")
     # Create symbols to hold the gradient and residual
     grad = Function(name="grad", grid=model.grid)
     vp = Function(name="vp", grid=model.grid)
@@ -69,13 +68,11 @@ def fwi_gradient(vp_in, model, geometry, *args):
         objective += .5*np.linalg.norm(residual.data.flatten())**2
         solver.gradient(rec=residual, u=u0, vp=vp, grad=grad)
     grad.data[:] /= np.max(np.abs(grad.data[:]))
-    print("Objective value: %f"%objective)
     return objective, -np.ravel(grad.data).astype(np.float64)
 
 
 
 def fwi_gradient_checkpointed(vp_in, model, geometry, n_checkpoints=1000, compression_params=None):
-    print("Checkpointed FWI/Gradient called")
     # Create symbols to hold the gradient and residual
     grad = Function(name="grad", grid=model.grid)
     vp = Function(name="vp", grid=model.grid)
@@ -90,7 +87,6 @@ def fwi_gradient_checkpointed(vp_in, model, geometry, n_checkpoints=1000, compre
     vp_in = vec2mat(vp_in)
     global iter
     iter += 1
-    #plot_field(vp_in, output_file="model%d.png"%iter)
     
     assert(model.vp.shape == vp_in.shape)
     vp.data[:] = vp_in[:]
@@ -133,7 +129,6 @@ def fwi_gradient_checkpointed(vp_in, model, geometry, n_checkpoints=1000, compre
         objective += .5*np.linalg.norm(residual.data.flatten())**2
         wrp.apply_reverse()
     grad.data[:] /= np.max(np.abs(grad.data[:]))
-    print("Objective value: %f"%objective)
     return objective, -np.ravel(grad.data).astype(np.float64)
 
 
