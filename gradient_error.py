@@ -13,7 +13,7 @@ from timeit import default_timer
 from simple import overthrust_setup
 
 from examples.seismic.acoustic.acoustic_example import acoustic_setup
-from util import to_hdf5, error_L0, error_L1, error_L2, error_Linf, error_angle
+from util import to_hdf5, error_L0, error_L1, error_L2, error_Linf, error_angle, write_results
 
 
 error_metrics = {'L0': error_L0, 'L1': error_L1, 'L2': error_L2, 'Linf': error_Linf, 'angle': error_angle}
@@ -76,9 +76,9 @@ def verify(space_order=4, kernel='OT4', nbpml=40, filename='', compression_param
     print("Verification took %d ms for forward and %d ms for reverse" % (tf.elapsed, tr.elapsed))
 
 
-def checkpointed_run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', compression_params={}, **kwargs):
+def checkpointed_run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', compression_params={}, tn=1000, **kwargs):
     #solver = acoustic_setup(shape=(10, 10), spacing=(10, 10), nbpml=10, tn=50, space_order=space_order, kernel=kernel, **kwargs)
-    solver = overthrust_setup(filename=filename, tn=1000, nbpml=nbpml, space_order=space_order, kernel=kernel, **kwargs)
+    solver = overthrust_setup(filename=filename, tn=tn, nbpml=nbpml, space_order=space_order, kernel=kernel, **kwargs)
     
     u = TimeFunction(name='u', grid=solver.model.grid, time_order=2, space_order=solver.space_order)
     rec = Receiver(name='rec', grid=solver.model.grid,
@@ -108,9 +108,9 @@ def checkpointed_run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='
 
     return grad, wrp, fw_timings, rev_timings
 
-def compare_error(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', compression_params={}, **kwargs):
+def compare_error(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', tn=1000, compression_params={}, **kwargs):
     grad, wrp, fw_timings, rev_timings = checkpointed_run(space_order, ncp, kernel, nbpml, filename,
-                                                          compression_params, **kwargs)
+                                                          compression_params, tn, **kwargs)
     print(wrp.profiler.summary())
 
     compression_params['scheme'] = None
@@ -118,14 +118,15 @@ def compare_error(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', 
     print("*************************")
     print("Starting uncompressed run:")
     
-    grad2, wrp2, fw_timings2, rev_timings2 = checkpointed_run(space_order, ncp, kernel, nbpml, filename,
-                                                          compression_params, **kwargs)
+    grad2, wrp2, fw_timings2, rev_timings2 = checkpointed_run(space_order, ncp, kernel, nbpml,
+                                                              filename, compression_params, tn,
+                                                              **kwargs)
     
     error_field = grad2.data - grad.data
 
     print("compression enabled norm", np.linalg.norm(grad.data))
     print("compression disabled norm", np.linalg.norm(grad2.data))
-    to_hdf5(error_field, 'zfp_grad_errors_full.h5')
+    #to_hdf5(error_field, 'zfp_grad_errors_full.h5')
     computed_errors = {}
     
     for k, v in error_metrics.items():
@@ -134,6 +135,7 @@ def compare_error(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', 
     data = computed_errors
     data['tolerance'] = compression_params['tolerance']
     data['ncp'] = ncp
+    data['tn'] = tn
 
     write_results(data, 'gradient_error_results.csv')
 
@@ -149,7 +151,7 @@ def run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', compressio
     write_results(csv_row, results_file)
 
 if __name__ == "__main__":
-    description = ("Example script for a set of acoustic operators.")
+    description = ("Experiment to see the effect of checkpoint compression error on the gradient")
     parser = ArgumentParser(description=description)
     parser.add_argument("-so", "--space_order", default=6,
                         type=int, help="Space order of the simulation")
@@ -169,6 +171,7 @@ if __name__ == "__main__":
     parser.add_argument("-dle", default="advanced",
                         choices=["noop", "advanced", "speculative"],
                         help="Devito loop engine (DLE) mode")
+    parser.add_argument("--tn", default=1000, type=int, help="Number of ms to run simulation for")
     args = parser.parse_args()
     compression_params={'scheme': args.compression, 'tolerance': 10**(-args.tolerance)}
     #verify(nbpml=args.nbpml, 
@@ -178,4 +181,4 @@ if __name__ == "__main__":
     compare_error(nbpml=args.nbpml, ncp=args.ncp,
         space_order=args.space_order, kernel=args.kernel,
         dse=args.dse, dle=args.dle, filename='%s/overthrust_3D_initial_model.h5'%path_prefix,
-        compression_params=compression_params)
+                  compression_params=compression_params, tn=args.tn)

@@ -14,7 +14,7 @@ from pyrevolve import Revolver
 
 filename = "overthrust_3D_initial_model_2D.h5"
 tn = 4000
-nshots = 40
+nshots = 10
 nbpml = 40
 
 
@@ -39,7 +39,6 @@ def fwi_gradient(vp_in, model, geometry, *args):
     vp_in = vec2mat(vp_in)
     global iter
     iter += 1
-    #plot_field(vp_in, output_file="model%d.png"%iter)
     
     assert(model.vp.shape == vp_in.shape)
     vp.data[:] = vp_in[:]
@@ -58,18 +57,17 @@ def fwi_gradient(vp_in, model, geometry, *args):
         solver.geometry.src_positions[0, :] = source_location[:]
         
         # Compute smooth data and full forward wavefield u0
-        u0.data.fill(0.)
+        u0.data[:] = 0.
         
         smooth_d, _, _ = solver.forward(vp=vp, save=True, u=u0)
         
         # Compute gradient from data residual and update objective function 
         residual.data[:] = smooth_d.data[:] - true_d[:]
         
-        objective += .5*np.linalg.norm(residual.data.flatten())**2
+        objective += .5*np.linalg.norm(residual.data.ravel())**2
         solver.gradient(rec=residual, u=u0, vp=vp, grad=grad)
-    grad.data[:] /= np.max(np.abs(grad.data[:]))
+    #grad.data[:] /= np.max(np.abs(grad.data[:]))
     return objective, -np.ravel(grad.data).astype(np.float64)
-
 
 
 def fwi_gradient_checkpointed(vp_in, model, geometry, n_checkpoints=1000, compression_params=None):
@@ -109,10 +107,10 @@ def fwi_gradient_checkpointed(vp_in, model, geometry, n_checkpoints=1000, compre
         solver.geometry.src_positions[0, :] = source_location[:]
         
         # Compute smooth data and full forward wavefield u0
-        u.data.fill(0.)
-        residual.data.fill(0.)
-        v.data.fill(0.)
-        smooth_d.data.fill(0.)
+        u.data[:] = 0.
+        residual.data[:] = 0.
+        v.data[:] = 0.
+        smooth_d.data[:] = 0.
 
         wrap_fw = CheckpointOperator(fwd_op, src=solver.geometry.src, u=u, rec=smooth_d,
                                      vp=vp, dt=dt)
@@ -126,9 +124,9 @@ def fwi_gradient_checkpointed(vp_in, model, geometry, n_checkpoints=1000, compre
         # Compute gradient from data residual and update objective function 
         residual.data[:] = smooth_d.data[:] - true_d[:]
         
-        objective += .5*np.linalg.norm(residual.data.flatten())**2
+        objective += .5*np.linalg.norm(residual.data.ravel())**2
         wrp.apply_reverse()
-    grad.data[:] /= np.max(np.abs(grad.data[:]))
+    #grad.data[:] /= np.max(np.abs(grad.data[:]))
     return objective, -np.ravel(grad.data).astype(np.float64)
 
 
@@ -195,7 +193,7 @@ description = ("Example script for running a complete FWI")
 parser = ArgumentParser(description=description)
 parser.add_argument("-so", "--space_order", default=6,
                         type=int, help="Space order of the simulation")
-parser.add_argument("--ncp", default=None, type=int)
+parser.add_argument("--ncp", default=1000, type=int)
 parser.add_argument("--compression", choices=[None, 'zfp', 'sz', 'blosc'], default=None)
 parser.add_argument("--tolerance", default=6, type=int)
 parser.add_argument("--nbpml", default=40,
@@ -223,7 +221,7 @@ solution_object = minimize(f_g, mat2vec(model.vp.data), args=(model, geometry, a
 
 
 true_model = from_hdf5(path_prefix+"/"+"overthrust_3D_true_model_2D.h5", datakey="m",
-                        dtype=np.float32, space_order=2, nbpml=nbpml)
+                       dtype=np.float32, space_order=2, nbpml=nbpml)
 
 
 error_norm = np.linalg.norm(true_model.vp.data - vec2mat(solution_object.x))
