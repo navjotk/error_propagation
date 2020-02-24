@@ -78,7 +78,8 @@ def verify(space_order=4, kernel='OT4', nbpml=40, filename='', compression_param
 
 def checkpointed_run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', compression_params={}, tn=1000, **kwargs):
     #solver = acoustic_setup(shape=(10, 10), spacing=(10, 10), nbpml=10, tn=50, space_order=space_order, kernel=kernel, **kwargs)
-    solver = overthrust_setup(filename=filename, tn=tn, nbpml=nbpml, space_order=space_order, kernel=kernel, **kwargs)
+    solver = overthrust_setup(filename=filename, tn=tn, nbpml=nbpml, space_order=space_order,
+                              kernel=kernel, **kwargs)
     
     u = TimeFunction(name='u', grid=solver.model.grid, time_order=2, space_order=solver.space_order)
     rec = Receiver(name='rec', grid=solver.model.grid,
@@ -91,7 +92,8 @@ def checkpointed_run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='
     dt = solver.dt
     v = TimeFunction(name='v', grid=solver.model.grid, time_order=2, space_order=solver.space_order)
     grad = Function(name='grad', grid=solver.model.grid)
-    wrap_fw = CheckpointOperator(solver.op_fwd(save=False), src=solver.geometry.src, u=u, rec=rec, dt=dt)
+    wrap_fw = CheckpointOperator(solver.op_fwd(save=False), src=solver.geometry.src, u=u,
+                                 rec=rec, dt=dt)
     wrap_rev = CheckpointOperator(solver.op_grad(save=False), u=u, v=v, rec=rec, dt=dt, grad=grad)
     
     fw_timings = []
@@ -108,7 +110,8 @@ def checkpointed_run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='
 
     return grad, wrp, fw_timings, rev_timings
 
-def compare_error(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', tn=1000, compression_params={}, **kwargs):
+def compare_error(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', tn=1000,
+                  compression_params={}, **kwargs):
     grad, wrp, fw_timings, rev_timings = checkpointed_run(space_order, ncp, kernel, nbpml, filename,
                                                           compression_params, tn, **kwargs)
     print(wrp.profiler.summary())
@@ -140,7 +143,8 @@ def compare_error(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', 
     write_results(data, 'gradient_error_results.csv')
 
 
-def run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', compression_params={}, **kwargs):
+def run(space_order=4, ncp=None, kernel='OT4', nbpml=40, filename='', compression_params={},
+        **kwargs):
     grad, wrp, fw_timings, rev_timings = checkpointed_run(space_order, ncp, kernel, nbpml, filename,
                                                           compression_params, **kwargs)
     print(wrp.profiler.summary())
