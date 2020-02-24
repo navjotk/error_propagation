@@ -233,7 +233,7 @@ if __name__ == "__main__":
     solution_object = minimize(f_g, mat2vec(model.vp.data), args=(model, geometry,
                                                                   args.ncp, compression_params),
                                jac=True, method='L-BFGS-B', callback=fncallback, bounds=b, options={'disp':True,
-                                                                               'maxiter': 50,
+                                                                               'maxiter': 60,
                                                                                })
 
     final_model = vec2mat(solution_object.x)
