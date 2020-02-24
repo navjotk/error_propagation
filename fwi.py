@@ -43,7 +43,6 @@ def fwi_gradient(vp_in, model, geometry, *args):
     
     assert(model.vp.shape == vp_in.shape)
     vp.data[:] = vp_in[:]
-    # Creat forward wavefield to reuse to avoid memory overload
     solver = overthrust_setup(path_prefix+"/"+filename,datakey="m0")
     u0 = TimeFunction(name='u', grid=model.grid, time_order=2, space_order=4,
                       save=geometry.nt)
