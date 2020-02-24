@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from util import read_csv
 
-description = ("Plot the forward propagation errors")
+description = ("Plot the errors from subsampling")
 parser = ArgumentParser(description=description)
 parser.add_argument("--filename", type=str, required=True)
 args = parser.parse_args()
@@ -15,11 +15,11 @@ filename = args.filename
 
 results = read_csv(filename)
 
-basename = "forward"
+basename = "subsampling"
 
-xvar = 'ntimesteps'
+xvar = 'f'
 
-yvars = ['L0', 'L1', 'L2', 'Linf']
+yvars = ['L1', 'L2', 'Linf', 'angle']
 
 x_to_plot = results[xvar]
 
