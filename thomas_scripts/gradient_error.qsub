@@ -4,7 +4,7 @@
 # 1. Force bash as the executing shell.
 #$ -S /bin/bash
 # 2. Request ten minutes of wallclock time (format hours:minutes:seconds).
-#$ -l h_rt=3:0:0
+#$ -l h_rt=24:0:0
 # 3. Request 1 gigabyte of RAM for each core/thread (must be an integer)
 #$ -l mem=128G
 # 4. Request 15 gigabyte of TMPDIR space (default is 10 GB)
@@ -17,6 +17,7 @@
 # write to $HOME.
 # Replace "<your_UCL_id>" with your UCL user ID :)
 #$ -wd /home/mmm0334/Scratch/output
+#$ -P Gold
 #$ -A Imperial_ESE
 # 5. Set up the job array.  In this instance we have requested 10000 tasks
 # numbered 1 to 10000.
@@ -29,4 +30,4 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/pyzfp/zfp-0.5.3/lib:/$HOME/pysz/sz
 export DEVITO_OPENMP=1
 export DEVITO_ARCH=intel
 export DEVITO_LOGGING=DEBUG
-python -u /home/mmm0334/error_propagation/gradient_error.py --ncp 15 --compression zfp --tolerance $SGE_TASK_ID
+python -u /home/mmm0334/error_propagation/gradient_error.py --ncp 15 --compression zfp --tolerance $SGE_TASK_ID --tn 1000
