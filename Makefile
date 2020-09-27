@@ -46,25 +46,34 @@ gradient: gradient_error_results.csv plot_gradient_error.py direct_compression_r
 
 stacking: stacking_experiment.tex
 
- stacking_experiment_results.csv: stacking.py
- 	python stacking.py
+stacking_experiment_results.csv: stacking.py
+	python stacking.py
 
- stacking_experiment.tex: stacking_experiment_results.csv
+stacking_experiment.tex: stacking_experiment_results.csv
  	python plot_stacking.py --filename stacking_experiment_results.csv
 
- subsampling: subsampling_experiment.tex
+subsampling: subsampling_experiment.tex
 
- subsampling_experiment.tex: subsampling_results.csv
+subsampling_experiment.tex: subsampling_results.csv
  	python plot_subsampling.py --filename subsampling_results.csv
 
- subsampling_results.csv: subsampling.py
+subsampling_results.csv: subsampling.py
  	rm subsampling_results.csv
  	python subsampling.py
 
- compressibility: progression_cf_timestep.tex
+compressibility: progression_cf_timestep.tex
 
 cf_vs_nt.csv:
  	python compression_ratios_over_time.py
 
 progression_cf_timestep.tex: cf_vs_nt.csv plotter.py
  	python plotter.py --filename cf_vs_nt.csv --basename progression --xvar timestep --yvar cf --no-xlog --no-ylog --hline 1
+
+daks:
+	git clone https://github.com/devitocodes/daks.git
+
+fwi: daks
+	daks/run-experiment.sh Standard_DS4_v2 reference --nshots 80 --shots-container shots-rho-80-so-16  --so 16 --scale-gradient W --dtype float64
+	daks/run-experiment.sh Standard_DS4_v2 compression1 --nshots 80 --shots-container shots-rho-80-so-16  --so 16 --scale-gradient W --dtype float64 --checkpointing --compression zfp --tolerance 1 --reference-solution reference/objective_function_values.csv
+	daks/run-experiment.sh Standard_DS4_v2 compression2 --nshots 80 --shots-container shots-rho-80-so-16  --so 16 --scale-gradient W --dtype float64 --checkpointing --compression zfp --tolerance 2 --reference-solution reference/objective_function_values.csv
+
