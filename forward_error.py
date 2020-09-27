@@ -24,11 +24,12 @@ def get_data(field):
 
 
 def run_forward_error(filename, space_order=4, kernel='OT4', tolerance=0.001,
-                      nbpml=10, **kwargs):
+                      nbpml=10, dtype=np.float64, **kwargs):
     # Setup solver
 
     solver = overthrust_setup(filename=filename, tn=1000, nbpml=nbpml,
-                              space_order=space_order, kernel=kernel, **kwargs)
+                              space_order=space_order, kernel=kernel,
+                              dtype=dtype, **kwargs)
 
     # Run for nt/2 timesteps as a warm up
     nt = solver.geometry.time_axis.num
