@@ -2,7 +2,7 @@ colon := :
 $(colon) := :
 
 
-all: stream.txt direct
+all: stream.txt direct forward gradient stacking subsampling compressibility fwi
 
 stream.txt: stream.o
 	./stream.o > stream.txt
