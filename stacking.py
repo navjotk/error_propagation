@@ -47,11 +47,15 @@ def calculate_perfect_gradient(i, solver, vp, grad, path_prefix, to=2, so=4):
 
 
 def calculate_lossy_gradient(i, solver, vp, grad, path_prefix, to=2, so=4,
-                             n_checkpoints=1000):
+                             n_checkpoints=1000, compression_params=None):
     true_d, source_location = load_shot(i, path_prefix)
     dt = solver.dt
     # Update source location
     solver.geometry.src_positions[0, :] = source_location[:]
+
+    if compression_params is None:
+        print("Using default compression params")
+        compression_params = {}
 
     # Compute smooth data and full forward wavefield u0
     u = TimeFunction(name='u', grid=solver.model.grid, time_order=to,
@@ -86,20 +90,21 @@ def calculate_lossy_gradient(i, solver, vp, grad, path_prefix, to=2, so=4,
     # The above line does an in-place update so no return required
 
 
-def stacking_experiment(filename, path_prefix, tn=4000, max_shots=40,
-                        atol=1e-16,
-                        results_file="stacking_experiment_results.csv", to=2,
-                        so=4):
-    solver = overthrust_setup(path_prefix+"/"+filename, tn=tn, datakey="m0")
+def stacking_experiment(filename, path_prefix, compression_params, tn=4000, max_shots=40, to=2, so=4, 
+                        results_file="stacking_experiment_results.csv"):
+    solver = overthrust_setup(path_prefix+"/"+filename, tn=tn, datakey="m0", nbpml=40)
     model, geometry, b = initial_setup(path_prefix)
     perfect_grad = Function(name="grad", grid=model.grid)
     lossy_grad = Function(name="grad", grid=model.grid)
     vp = model.vp
 
+    atol = compression_params['tolerance']
+
     for i in range(max_shots):
         # The following calls are by reference and cumulative
         calculate_perfect_gradient(i, solver, vp, perfect_grad, path_prefix, so=so)
-        calculate_lossy_gradient(i, solver, vp, lossy_grad, path_prefix, so=so)
+        calculate_lossy_gradient(i, solver, vp, lossy_grad, path_prefix,
+                                 compression_params=compression_params, so=so)
 
         computed_errors = {}
         for k, v in error_metrics.items():
@@ -118,7 +123,7 @@ if __name__ == "__main__":
                         type=int, help="Space order of the simulation")
     parser.add_argument("--ncp", default=None, type=int)
     parser.add_argument("--compression", choices=[None, 'zfp', 'sz', 'blosc'],
-                        default=None)
+                        default="zfp")
     parser.add_argument("--tolerance", default=6, type=int)
     parser.add_argument("--runmode", choices=["error", "timing"],
                         default="timing")
@@ -136,4 +141,4 @@ if __name__ == "__main__":
 
     path_prefix = os.path.dirname(os.path.realpath(__file__))
 
-    stacking_experiment("overthrust_3D_initial_model_2D.h5", path_prefix)
+    stacking_experiment("overthrust_3D_initial_model_2D.h5", path_prefix, compression_params, max_shots=10)
