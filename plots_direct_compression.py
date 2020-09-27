@@ -26,7 +26,7 @@ plot = args.plot
 
 f = h5py.File(filename, 'r')
 
-field = f['data'][()]
+field = f['data'][()].astype(np.float64)
 
 tolerances = [10**x for x in range(0, -17, -1)]
 
