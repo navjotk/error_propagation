@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 import matplotlib
+import tikzplotlib
 matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt  # noqa
@@ -24,9 +25,10 @@ x_to_plot = results[xvar]
 
 for yvar in yvars:
     # plt.xscale('log')
-    # plt.yscale('log')
+    plt.yscale('log')
     plt.plot(x_to_plot, results[yvar])
-    plt.xlabel(xvar)
+    plt.xlabel('cf')
     plt.ylabel(yvar)
     plt.savefig("%s_%s.pdf" % (basename, yvar), bbox_inches='tight')
+    tikzplotlib.save(("%s_%s.tex" % (basename, yvar)))
     plt.clf()
