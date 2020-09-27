@@ -37,10 +37,10 @@ print(x_to_plot)
 for yvar in yvars:
     if not args.nolog:
         plt.xscale('log')
-    #plt.yscale('log')
+    plt.yscale('log')
     plt.plot(x_to_plot, results[yvar])
     plt.xlabel(xvar)
     plt.ylabel(yvar)
-    plt.savefig("%s_%s.pdf" % (basename, yvar), bbox_inches='tight')
+    plt.savefig("%s_%s_%s.pdf" % (basename, yvar, xvar), bbox_inches='tight')
     tikzplotlib.save("%s_%s_%s.tex" % (basename, yvar, xvar))
     plt.clf()
