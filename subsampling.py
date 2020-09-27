@@ -18,7 +18,7 @@ def subsampled_gradient(factor=1, tn=2000.):
 
     space_order = 4
 
-    vp = np.empty(shape, dtype=np.float32)
+    vp = np.empty(shape, dtype=np.float64)
     vp[:, :51] = 1.5
     vp[:, 51:] = 2.5
 
