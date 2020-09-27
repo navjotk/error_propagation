@@ -2,6 +2,7 @@ import h5py
 import pyzfp
 from argparse import ArgumentParser
 import matplotlib
+import tikzplotlib
 matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt  # noqa
@@ -39,6 +40,7 @@ for atol in tolerances:
                                     dtype=field.dtype, tolerance=atol)
 
     computed_errors = {}
+    computed_errors['cf'] = len(field.tostring())/float(len(compressed))
     for k, v in error_metrics.items():
         computed_errors[k] = v(field, decompressed)
 
@@ -55,3 +57,4 @@ plt.plot(tolerances, error_to_plot)
 plt.xlabel("atol")
 plt.ylabel(plot)
 plt.savefig("direct_%s.pdf" % plot, bbox_inches='tight')
+tikzplotlib.save("direct_%s.tex" % plot)
