@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+import tikzplotlib
 import matplotlib
 matplotlib.use('Agg')
 
@@ -29,4 +30,5 @@ for yvar in yvars:
     plt.xlabel(xvar)
     plt.ylabel(yvar)
     plt.savefig("%s_%s.pdf" % (basename, yvar), bbox_inches='tight')
+    tikzplotlib.save("%s_%s.tex" % (basename, yvar))
     plt.clf()
