@@ -19,7 +19,7 @@ basename = "forward"
 
 xvar = 'ntimesteps'
 
-yvars = ['L0', 'L1', 'L2', 'Linf']
+yvars = ['L0', 'L1', 'L2', 'Linf', 'PSNR']
 
 x_to_plot = results[xvar]
 

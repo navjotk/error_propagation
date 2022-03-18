@@ -111,7 +111,7 @@ def error_angle(original, decompressed):
 
 def error_psnr(original, decompressed):
     range = np.max(original) - np.min(original)
-    return skimage.measure.compare_psnr(original, decompressed, range)
+    return skimage.metrics.peak_signal_noise_ratio(original, decompressed, data_range=range)
 
 
 def read_csv(filename):
