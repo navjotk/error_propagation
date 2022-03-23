@@ -2,34 +2,53 @@ import h5py
 from util import plot_field
 import numpy as np
 import matplotlib.pyplot as plt
+import click
+import tikzplotlib
 
 
-filename = "overthrust_2D_initial_model.h5"
+def plot_field(data, output_file, threshold=0.01):
+    shape = data.shape
+    print(shape)
+    data[data >= threshold] = threshold
+    data[data <= -threshold] = -threshold
+    vmax = np.max(data)
+    slice_loc = 440
+    if len(shape) > 2:
+        data = data[slice_loc]
 
-f = h5py.File(filename, 'r')
+    plt.imshow(np.transpose(data), vmax=vmax, vmin=-vmax, cmap="seismic",
+               extent=[0, 20, 0.001*(shape[-1]-1)*25, 0])
 
-datakey = 'm0'
+    plt.xlabel("X (km)")
+    plt.ylabel("Depth (km)")
+    cb = plt.colorbar(shrink=.3, pad=.01, aspect=10)
+    for i in cb.ax.yaxis.get_ticklabels():
+        i.set_fontsize(12)
 
-data_m = f[datakey][()]
+        cb.set_label('Pressure')
 
-data = data_m
-shape = data.shape
-vmax = np.max(data)
+    plt.savefig(output_file, bbox_inches='tight')
+    plt.clf()
 
-im = plt.imshow(data, vmax=vmax, vmin=0, cmap="GnBu",
-                extent=[0, 20, 0.001*(shape[-1]-1)*25, 0])
+def plot_histogram(data, output_file):
+    data = data.ravel()
+    plt.hist(data, log=True)
+    plt.savefig(output_file, bbox_inches='tight')
+    basename = output_file.split(".")[0]
+    tikzplotlib.save("%s.tex" % basename)
 
-plt.xlabel("X (km)")
-plt.ylabel("Depth (km)")
-cb = plt.colorbar(shrink=.3, pad=.01, aspect=10)
+@click.command()
+@click.option("--input-file", type=(str, str), default=("uncompressed.h5", "data"))
+@click.option("--output-file", type=str, default="field.pdf")
+@click.option("--plot-type", type=click.Choice(["field", "histogram"]), default="field")
+def run(input_file, output_file, plot_type):
+    filename, datakey = input_file
+    f = h5py.File(filename, 'r')
+    data = f[datakey][()]
+    if plot_type == "field":
+        plot_field(data, output_file=output_file)
+    else:
+        plot_histogram(data, output_file=output_file)
 
-for i in cb.ax.yaxis.get_ticklabels():
-    i.set_fontsize(12)
-
-    cb.set_label('Pressure')
-
-# plt.savefig(output_file, bbox_inches='tight')
-plt.show()
-plt.clf()
-
-plot_field(np.transpose(data_m), output_file='test_field.pdf')
+if __name__ == "__main__":
+    run()
